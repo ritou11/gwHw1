@@ -35,3 +35,9 @@ legend('case9','','case118','');
 saveas(gcf, [pwd '\meta\diagpri.png']);
 disp('non-singularity');
 fprintf('|det(Y)| = %s\n', abs(det(Y)));
+%% LDU
+disp('LDU');
+[mL, mU] = lu(Y);
+[L, U] = calcLU(Y);
+fprintf('LU: Lerror = %.2f, Uerror = %.2f\n', norm(full(mL - L)), norm(full(mU - U)));
+[L, D, U] = calcLDU(Y);
