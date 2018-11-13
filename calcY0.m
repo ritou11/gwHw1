@@ -16,5 +16,22 @@ yb = spdiags([1./(mpc.branch(:,3)+1j*mpc.branch(:,4));y0],0,b+N,b+N);
 Y0 = A0*yb*A0';
 Y = Y0(1:N, 1:N);
 %% makeYbus
+disp('makeYbus');
 [Ybus, ~, ~] = makeYbus(mpc);
-display(Ybus - Y);
+disp(Ybus - Y);
+%% feature of Y
+disp('sparse');
+disp(nnz(Y)/numel(Y));
+disp('diagonal priority');
+figure();
+yyaxis left;
+histDiagPri(mpc);
+ylabel('num');
+yyaxis right;
+histDiagPri(case118());
+xlabel('diagElem / max(abs(otherColumnElem))');
+ylabel('num');
+legend('case9','','case118','');
+saveas(gcf, [pwd '\meta\diagpri.png']);
+disp('non-singularity');
+fprintf('|det(Y)| = %s\n', abs(det(Y)));
