@@ -1,4 +1,4 @@
-function [Lm, Dm, Um] = modifyLDUr1(L, D, U, Ml, a)
+function [Lm, Dm, Um] = modifyLDUr1(D, U, Ml, a)
 % [Lm, Dm, Um] = calcLDU(L*D*U + Ml*a*Ml');
 Sm = generateSm(Ml, U);
 for idx = 1:size(Sm,1)
