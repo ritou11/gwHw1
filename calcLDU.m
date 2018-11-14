@@ -1,5 +1,8 @@
 function [L, D, U] = calcLDU(A)
 [L, U] = calcLU(A);
 D = diag(diag(L));
-L(logical(speye(size(L)))) = 1;
+N = size(A, 1);
+for i=1:N
+    L(:, i) = L(:, i) / D(i, i);
+end
 end

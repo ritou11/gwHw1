@@ -37,7 +37,7 @@ disp('non-singularity');
 fprintf('|det(Y)| = %s\n', abs(det(Y)));
 %% LDU
 disp('LDU');
-[mL, mU] = lu(Y);
 [L, U] = calcLU(Y);
-fprintf('LU: Lerror = %.2f, Uerror = %.2f\n', norm(full(mL - L)), norm(full(mU - U)));
+fprintf('LU error = %.2f\n', norm(full(L*U - Y)));
 [L, D, U] = calcLDU(Y);
+fprintf('LDU error = %.2f\n', norm(full(L*D*U - Y)));
