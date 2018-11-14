@@ -6,7 +6,7 @@ b = size(mpc.branch,1);
 %% A0
 nodeA = [mpc.branch(:,1);mpc.branch(:,2);(N+1)*ones(N,1);(1:N)'];
 branchA = [1:b,1:b,b+(1:N),b+(1:N)]';
-valueA = [ones(b,1);-ones(b,1);ones(N,1);-ones(N,1)];
+valueA = [ones(b,1);-ones(b,1);-ones(N,1);ones(N,1)];
 A0 = sparse(nodeA, branchA, valueA);
 %% yb
 A = sparse(mpc.branch(:,1:2),[1:b,1:b]',ones(b,2));
@@ -21,9 +21,9 @@ disp('makeYbus');
 disp(Ybus - Y);
 %% feature of Y
 disp('sparse');
-disp(nnz(Y)/numel(Y));
+fprintf('sparse degree = %.3f\n', nnz(Y)/numel(Y));
 disp('diagonal priority');
-figure();
+f=figure();
 yyaxis left;
 histDiagPri(mpc);
 ylabel('num');
@@ -32,7 +32,8 @@ histDiagPri(case118());
 xlabel('diagElem / max(abs(otherColumnElem))');
 ylabel('num');
 legend('case9','','case118','');
-saveas(gcf, [pwd '\meta\diagpri.png']);
+saveas(f, [pwd '\meta\diagpri.png']);
+close(f);
 disp('non-singularity');
 fprintf('|det(Y)| = %s\n', abs(det(Y)));
 %% LDU

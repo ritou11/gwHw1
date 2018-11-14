@@ -1,3 +1,6 @@
+%% previous
+expY();
+Zi = inv(Y);
 %% Import case
 % ???case9_modified??
 mpc_m = case9_modified();
