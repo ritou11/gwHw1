@@ -81,3 +81,13 @@ dY = dY + Ml * -ybr * Ml.';
 [Lm2, Dm2, Um2] = modifyLDUlr(D, U, dY);
 disp('modify LDU - Local Re');
 fprintf('ldu-lr error = %s\n', norm(full(Y - Lm2*Dm2*Um2)));
+%% Compensation method
+% Compensation current
+V = sparse(1:N, 1, 1, N, 1);
+I = Y * V;
+deltay = sparse(1:3, 1:3, [ybr, 1j * bbn, 1j * bbn], 3, 3);
+M = sparse([fbn, tbn, fbn, tbn], [1,1,2,3], [1,-1,1,1], N, 3);
+c = inv(inv(deltay) + M.' * inv(Y) * M);
+deltaI = - M * c * M.' * inv(Y) * I;
+Is = I + deltaI;
+Vs = Y \ Is;
