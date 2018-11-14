@@ -1,8 +1,7 @@
-function Sm = generateSm(M, U)
+function Sm = generateSm(idxM, U)
 N = size(U, 1);
 S = zeros(N, 1);
 n = 0;
-idxM = find(M);
 for i = 1:size(idxM, 1)
     p = idxM(i);
     t = [p p];

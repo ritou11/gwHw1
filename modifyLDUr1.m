@@ -1,6 +1,6 @@
 function [Lm, Dm, Um] = modifyLDUr1(D, U, Ml, a)
 % [Lm, Dm, Um] = calcLDU(L*D*U + Ml*a*Ml');
-Sm = generateSm(Ml, U);
+Sm = generateSm(find(Ml), U);
 for idx = 1:size(Sm,1)
     i = Sm(idx);
     alpha = a * Ml(i);

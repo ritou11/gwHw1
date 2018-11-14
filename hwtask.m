@@ -76,8 +76,8 @@ fprintf('Zm error = %s\n', norm(full(Zm - inv(mpYm))));
 disp('modify LDU - Rank 1');
 fprintf('ldu-r1 error = %s\n', norm(full(Y - Lm1*Dm1*Um1)));
 %% Modify LDU - Local Re
-[Lm2, Dm2, Um2] = modifyLDUlr(D, U, Ml, -ybr);
-[Lm2, Dm2, Um2] = modifyLDUlr(Dm2, Um2, sparse(fbn, 1, 1, N, 1), -1j * bbn);
-[Lm2, Dm2, Um2] = modifyLDUlr(Dm2, Um2, sparse(tbn, 1, 1, N, 1), -1j * bbn);
+dY = sparse([fbn, tbn], [fbn, tbn], [-1j * bbn, -1j * bbn], N, N);
+dY = dY + Ml * -ybr * Ml.';
+[Lm2, Dm2, Um2] = modifyLDUlr(D, U, dY);
 disp('modify LDU - Local Re');
 fprintf('ldu-lr error = %s\n', norm(full(Y - Lm2*Dm2*Um2)));
