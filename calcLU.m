@@ -1,5 +1,4 @@
 function [L, U] = calcLU(A)
-% [L, U] = lu(A);
 N = size(A,1); 
 for p=1:N-1
     A(p, p+1:end) = A(p, p+1:end) / A(p, p);
@@ -8,4 +7,4 @@ for p=1:N-1
     end
 end
 L = tril(A);
-U = triu(A, 1) + eye(N);
+U = triu(A, 1) + speye(N);
