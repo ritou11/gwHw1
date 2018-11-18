@@ -10,21 +10,77 @@
 \begin{document}
     \maketitle
     %\newpage
-    \section{Example}
-    此处导入了MatPower的IEEE 9节点模型，并给出了模型信息。N为节点数量，b为支路数量。
-    \begin{lstlisting}[language=matlab]
+    \section{节点导纳矩阵的计算与分析}
+    \subsection{题目1}
+    \paragraph{题目描述} 请阅读参考程序1，理解并解读每一模块的功能与实现方法。试用自己的方法计算节点不定导纳矩阵Y0，并以地为参考节点生成导纳矩阵Y。
+    \subsubsection{程序解读}
+    \begin{enumerate}
+      \item 导入MatPower的IEEE 9节点模型，并给出了模型信息。N为节点数量，b为支路数量。
+      \begin{lstlisting}[language=matlab]
 mpc = case9();
 N = size(mpc.bus,1);
 b = size(mpc.branch,1);
-    \end{lstlisting}
-
-    此处首先生成节点支路关联矩阵A。mpc结构体中的branch矩阵储存了网络支路的信息，其中
-    \begin{lstlisting}[language=matlab]
+      \end{lstlisting}
+      \item 生成不包含接地支路的导纳矩阵。\\
+      首先生成节点支路关联矩阵A，使用稀疏矩阵进行存储。mpc结构体中的branch矩阵储存了网络支路的信息，每一行为一条支路，其中第一列与第二列分别存储了支路的首节点、尾节点。生成的方式，是在首节点（行号）与支路（列号）之间赋值1，在尾节点（行号）与支路（列号）之间赋值-1。\\
+      其次生成支路导纳矩阵yb，方法是计算每一条支路的复导纳并将其放在矩阵的对角元上。branch矩阵的第三列、第四列分别为支路电阻、支路电感，导纳由\cref{eq:y}给出。\\
+      \begin{equation}
+        \label{eq:y}
+        y_i = (R_i + j \cdot X_i)^{-1}, i\in[1, b]
+      \end{equation}
+      最后生成不包含接地支路的导纳矩阵Y。\\
+      \begin{lstlisting}[language=matlab]
 A = sparse(mpc.branch(:,1:2),[1:b,1:b]',[ones(b,1),-ones(b,1)]);
 yb = spdiags(1./(mpc.branch(:,3)+1j*mpc.branch(:,4)),0,b,b);
 Y = A*yb*A';
 display(det(Y));
+      \end{lstlisting}
+      采用求取行列式的方式验证此时Y的奇异性，输出值为-2.0717e-05 + 1.3435e-05i。可见该值接近于0，Y矩阵此时是奇异的。这是由于没有接地支路，整个网络悬空，自然无法通过电流求取电压，符合物理意义。
+      \item 补充接地支路，生成导纳矩阵Y。\\
+      首先生成节点支路关联矩阵A，使用稀疏矩阵进行存储。由于为接地支路，因此节点与支路之间的关联元素均为1。构建A的目的，是为了从支路的对地导纳中等效出节点的接地导纳。
+      其次使用A从支路上等效出节点的接地导纳，并生成节点接地导纳向量y0。每条线路使用$\pi$型等值电路，对地导纳等效在线路两侧，各1/2。同时每个节点有自身的对地导纳，储存在bus矩阵的第五列（电导）与第六列（电纳）中。
+      最后，将接地导纳向量y0加到Y矩阵的对角元上，形成导纳矩阵Y。
+      \begin{lstlisting}[language=matlab]
+A = sparse(mpc.branch(:,1:2),[1:b,1:b]',ones(b,2));
+y0 = A*1j*mpc.branch(:,5)/2 + mpc.bus(mpc.bus(:,1),5)+1j*mpc.bus(mpc.bus(:,1),6);
+Y = Y + spdiags(y0,0,N,N);
+      \end{lstlisting}
+      \item 生成不定导纳矩阵Y0并测试奇异性
+      \begin{lstlisting}[language=matlab]
+Y0 = [Y,-y0;-y0.',sum(y0)];
+display(det(Y0));
+      \end{lstlisting}
+      根据Y0的定义，将N+1节点定为大地节点，则可生成Y0阵。计算其行列式值，结果为6.7246e-06 + 8.5978e-06i。这表明Y0阵是奇异的，理由同样是没有参考节点。
+    \end{enumerate}
+    \subsubsection{不定导纳矩阵Y0生成}
+    生成Y0矩阵时，不同于参考程序的思路，我们可以将大地节点作为N+1号节点，直接写出全网的节点支路关联矩阵，并计算全网的支路导纳。对于线路的对地导纳，我们可以用$\pi$形等值电路将导纳等效到节点上；对于节点的接地导纳，可以将其看做一条对地的支路。该思路生成Y0的程序如\cref{lst:q1p1}所示。
+    \begin{lstlisting}[language=matlab,label=lst:q1p1,caption={不定节点导纳矩阵Y0生成程序}]
+%% A0
+nodeA = [mpc.branch(:,1);mpc.branch(:,2);(N+1)*ones(N,1);(1:N)'];
+branchA = [1:b,1:b,b+(1:N),b+(1:N)]';
+valueA = [ones(b,1);-ones(b,1);-ones(N,1);ones(N,1)];
+A0 = sparse(nodeA, branchA, valueA);
+%% yb
+A = sparse(mpc.branch(:,1:2),[1:b,1:b]',ones(b,2));
+y0 = A*1j*mpc.branch(:,5)/2 + mpc.bus(mpc.bus(:,1),5) + 1j*mpc.bus(mpc.bus(:,1),6);
+yb = spdiags([1./(mpc.branch(:,3)+1j*mpc.branch(:,4));y0],0,b+N,b+N);
+%% Y0 Y
+Y0 = A0*yb*A0';
     \end{lstlisting}
+    \subsubsection{导纳矩阵Y生成}
+    由于大地节点是N+1号节点，因此直接截取Y0阵的前N行N列，即可得到导纳矩阵Y。
+    \begin{lstlisting}[language=matlab]
+Y = Y0(1:N, 1:N);
+    \end{lstlisting}
+    \newpage
+    \appendix
+    \section{程序清单}
+      \begin{lstlisting}[language=matlab,label=lst:q1p2,caption={作业任务主程序}]
+  A = sparse(mpc.branch(:,1:2),[1:b,1:b]',[ones(b,1),-ones(b,1)]);
+  yb = spdiags(1./(mpc.branch(:,3)+1j*mpc.branch(:,4)),0,b,b);
+  Y = A*yb*A';
+  display(det(Y));
+      \end{lstlisting}
     \label{applastpage}
     \newpage
     \bibliography{report}
