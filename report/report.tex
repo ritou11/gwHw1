@@ -73,18 +73,19 @@ Y0 = A0*yb*A0';
 Y = Y0(1:N, 1:N);
     \end{lstlisting}
     \newpage
-    \appendix
-    \section{程序清单}
-      \begin{lstlisting}[language=matlab,label=lst:q1p2,caption={作业任务主程序}]
-  A = sparse(mpc.branch(:,1:2),[1:b,1:b]',[ones(b,1),-ones(b,1)]);
-  yb = spdiags(1./(mpc.branch(:,3)+1j*mpc.branch(:,4)),0,b,b);
-  Y = A*yb*A';
-  display(det(Y));
-      \end{lstlisting}
-    \label{applastpage}
-    \newpage
     \bibliography{report}
     \bibliographystyle{unsrt}
+    \appendix
+    \section{程序清单}
+      \lstinputlisting[language=matlab,label=lst:hwtask,caption={全部作业任务}]{../hwtask.m}
+      \lstinputlisting[language=matlab,label=lst:calcLU,caption={LU分解}]{../calcLU.m}
+      \lstinputlisting[language=matlab,label=lst:calcLDU,caption={LDU分解}]{../calcLDU.m}
+      \lstinputlisting[language=matlab,label=lst:generateSm,caption={生成道路集}]{../generateSm.m}
+      \lstinputlisting[language=matlab,label=lst:modifyLDUr1_org,caption={秩1因子法因子修正}]{../modifyLDUr1_org.m}
+      \lstinputlisting[language=matlab,label=lst:modifyLDUr1,caption={秩1因子法因子修正（稀疏向量）}]{../modifyLDUr1.m}
+      \lstinputlisting[language=matlab,label=lst:modifyLDUlr,caption={局部再分解法因子修正}]{../modifyLDUlr.m}
+      \lstinputlisting[language=matlab,label=lst:histDiagPri,caption={观察主对角占优}]{../histDiagPri.m}
+    \label{applastpage}
 \iffalse
 \begin{itemize}[noitemsep,topsep=0pt]
 %no white space
