@@ -1,0 +1,43 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[noabs,notoc]{HaotianReport}
+
+\title{第一次作业}
+\author{刘昊天}
+\authorinfo{电博181班, 2018310648}
+\runninghead{高等电力网络分析}
+\studytime{2018年11月}
+
+\begin{document}
+    \maketitle
+    %\newpage
+    \section{Example}
+    此处导入了MatPower的IEEE 9节点模型，并给出了模型信息。N为节点数量，b为支路数量。
+    \begin{lstlisting}[language=matlab]
+mpc = case9();
+N = size(mpc.bus,1);
+b = size(mpc.branch,1);
+    \end{lstlisting}
+
+    此处首先生成节点支路关联矩阵A。mpc结构体中的branch矩阵储存了网络支路的信息，其中
+    \begin{lstlisting}[language=matlab]
+A = sparse(mpc.branch(:,1:2),[1:b,1:b]',[ones(b,1),-ones(b,1)]);
+yb = spdiags(1./(mpc.branch(:,3)+1j*mpc.branch(:,4)),0,b,b);
+Y = A*yb*A';
+display(det(Y));
+    \end{lstlisting}
+    \label{applastpage}
+    \newpage
+    \bibliography{report}
+    \bibliographystyle{unsrt}
+\iffalse
+\begin{itemize}[noitemsep,topsep=0pt]
+%no white space
+\end{itemize}
+\begin{enumerate}[label=\Roman{*}.,noitemsep,topsep=0pt]
+%use upper case roman
+\end{enumerate}
+\begin{multicols}{2}
+%two columns
+\end{multicols}
+\fi
+\end{document}
