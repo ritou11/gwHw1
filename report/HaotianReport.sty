@@ -63,7 +63,7 @@
     citecolor=black,%
     urlcolor=black]{hyperref}
 \else
-\DeclareGraphicsExtensions{.eps,.ps}
+\DeclareGraphicsExtensions{.eps,.ps,.pdf,.jpg,.jpeg,.png}
 \RequirePackage[xetex,  %pdflatex,pdftex    这里决定运行文件的方式不同
             pdfstartview=FitH,%
             CJKbookmarks=true,%
@@ -122,7 +122,7 @@
     \vskip 0.8em%
     {\large \@author, \@authorinfo}%
     \vskip 0.5em%
-    {\large \today}%    
+    {\large \today}%
   \end{center}%
   \if@abs
   \make@abstract
@@ -224,8 +224,8 @@
       \begin{flushleft}
           \large \kaishu \@runninghead
       \end{flushleft}
-      \begin{center}  
-          \kaishu     
+      \begin{center}
+          \kaishu
           \vfill \Huge
           \@title \\
           \vfill

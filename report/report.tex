@@ -72,6 +72,116 @@ Y0 = A0*yb*A0';
     \begin{lstlisting}[language=matlab]
 Y = Y0(1:N, 1:N);
     \end{lstlisting}
+    \subsection{题目2}
+    \paragraph{题目描述} 调用matpower的makeYbus函数生成导纳矩阵Y，对比自己得到的Y，是否一致？请仔细阅读makeYbus函数及matpower手册，解释matpower生成Y矩阵的原理，注意其对移相器、变压器、接地支路的处理方法。发掘matpower在计算实现过程中涉及到的编程技巧。
+
+    调用makeYbus函数计算得到Ybus矩阵，同自己生成的Y进行对比，程序及得到结果如下。该误差非常小，属于计算过程中由于步骤的不同，导致的浮点误差。因此自己得到的Y和makeYbus生成的导纳矩阵是一致的。
+    \begin{lstlisting}[language=matlab]
+%% makeYbus
+disp('makeYbus');
+[Ybus, ~, ~] = makeYbus(mpc);
+disp(Ybus - Y);
+% 输出：(9,9)      0.0000e+00 - 3.5527e-15i
+    \end{lstlisting}
+
+    makeYbus函数为了处理移相器支路，采用了不同的生成方式，MATPOWER的说明文档[TODO:cite]中对生成方式进行了说明。首先，将支路建立成一个二端口的形式，也就是变压器、移相器、输电线均被建立为一个通用支路模型，如\cref{fig:branch}所示。其中，$v_f,i_f$为首节点电压电流，$v_t,i_t$为尾节点电压电流，$N=\tau e^{j\theta_{shift}}$为变压器变比，包含了变压器档位和移相器相位，$y_s=\frac{1}{r_s+j x_s}$及$b_c$均为$\pi$形等值线路参数。由此我们可以得到该二端口网络的方程，如\cref{eq:branch}所示。
+
+    \begin{figure}
+      \includegraphics[width=0.95\linewidth]{branch}
+      \caption{通用支路模型}
+      \label{fig:branch}
+    \end{figure}
+    \begin{equation}
+      \label{eq:branch}
+      \begin{aligned}
+        \begin{bmatrix}
+          i_f\\
+          i_t
+        \end{bmatrix} &= Y_{br}
+        \begin{bmatrix}
+          v_f\\
+          v_t
+        \end{bmatrix} \\
+        Y_{br} &= \begin{bmatrix}
+          (y_s+j\frac{b_c}{2})\frac{1}{\tau^2} & -y_s\frac{1}{\tau e^{-j\theta_{shift}}} \\
+          -y_s\frac{1}{\tau e^{j\theta_{shift}}} & y_s+j\frac{b_c}{2}
+      \end{bmatrix}\\
+      Y_{br}^i &=
+      \begin{bmatrix}
+        y_{ff}^i & y_{ft}^i\\
+        y_{tf}^i & y_{tt}^i
+      \end{bmatrix}
+      \end{aligned}
+    \end{equation}
+
+    将网络中的节点按照支路的首尾分为首节点和尾节点，则我们可以构造向量$Y_{ff},Y_{ft},Y_{tf},Y_{tt}$描述网络。为了通过$Y_{br}^i$生成这些矩阵，引入支路节点关联矩阵$C_f, C_t$。该矩阵行号为支路，列号为节点，如果有关联则元素为1，否则为0。另外，各节点接地导纳可表示为$y_{sh}^i=g_{sh}^i+j b_{sh}^i$，$Y_{sh}=G_sh+jB_{sh}$为接地导纳向量。
+
+    网络方程表示为\cref{eq:net}，其中导纳矩阵表示为\cref{eq:ybus}。这就是MATPOWER对网络矩阵的处理方式。
+    \begin{equation}
+      \label{eq:net}
+      \begin{aligned}
+        I_f &= Y_f V \\
+        I_t &= Y_t V
+      \end{aligned}
+    \end{equation}
+    \begin{equation}
+      \label{eq:ybus}
+      \begin{aligned}
+          Y_f = diag(Y_{ff})C_f+diag(Y_{ft})C_t\\
+          Y_t = diag(Y_{tf})C_f+diag(Y_{tt})C_t\\
+          Y_{bus} = C_f^TY_f+C_t^TY_t+diag(Y_{sh})
+      \end{aligned}
+    \end{equation}
+
+    TODO：编程技巧
+    \subsection{题目3}
+    \paragraph{题目描述} 探讨Y矩阵的各类特性（包括但不限于：稀疏性、对角占优、非奇异性等），并用计算结果进行验证。
+    编写验证程序如\cref{lst:q1q3p1}所示，结果如\cref{lst:q1q3p2,fig:diagpri}示。
+
+    可见，对于稀疏性而言，计算矩阵的稀疏度（非零元素数量占比）结果为0.3333，这表明矩阵只有33.33\%的元素是非零的，因此是稀疏的。对于对角占优性而言，\cref{fig:diagpri}描述了矩阵每行对角元绝对值和每行除去对角元外的最大绝对值元素绝对值的比值分布。可以看到，对于IEEE-9节点网络和IEEE-118节点网络来说，大部分的比值都分布在1的右侧，这表明绝大多数行都是对角占优的。特别对于IEEE-9节点网络来说，所有行都可以认为是对角占优的。对于非奇异性而言，计算矩阵的行列式，得到2.443e+09，远大于0，说明矩阵时非奇异的。
+
+    \begin{lstlisting}[language=matlab,label=lst:q1q3p1,caption={矩阵特性验证程序}]
+%% feature of Y
+disp('sparse');
+fprintf('sparse degree = %.3f\n', nnz(Y)/numel(Y));
+disp('diagonal priority');
+f=figure();
+yyaxis left;
+histDiagPri(mpc);
+ylabel('num');
+yyaxis right;
+histDiagPri(case118());
+xlabel('diagElem / max(abs(otherColumnElem))');
+ylabel('num');
+legend('case9','','case118','');
+saveas(f, [pwd '\meta\diagpri.png']);
+close(f);
+disp('non-singularity');
+fprintf('|det(Y)| = %s\n', abs(det(Y)));
+    \end{lstlisting}
+    \begin{lstlisting}[label=lst:q1q3p2,caption={矩阵特性验证结果}]
+sparse
+sparse degree = 0.333
+diagonal priority
+non-singularity
+|det(Y)| = 2.443121e+09
+    \end{lstlisting}
+    \begin{figure}
+      \includegraphics[width=0.95\linewidth]{../meta/diagpri.png}
+      \caption{Y阵对角占优特性研究}
+      \label{fig:diagpri}
+    \end{figure}
+    \subsection{题目4}
+    \paragraph{题目描述} 实现对Y矩阵的因子表分解（分步进行，明确操作流程与原理）
+    \section{网络方程修正解法}
+    已知Y、Z为case9标准系统的导纳、阻抗矩阵，已知Y的LDU分解。现在case9系统的7、9节点间添加一条支路，参数见r、x、b分别为0.0213、0.108、0.239（标幺值）。
+    \subsection{题目1}
+    \paragraph{题目描述} 阅读参考程序2，理解并解读每一模块的功能与实现方法。试用自己的方法求新系统的导纳、阻抗矩阵。
+    \subsection{题目2}
+    \paragraph{题目描述} 讨论并验证在已添加支路的系统中去除该支路的LDU修正方法与结果。请思考：需要做几次修正？因子表的秩1因子修正与局部再分解的计算效率如何？修正法的应用场景与意义？
+    \subsection{题目3}
+    \paragraph{题目描述} 探讨并用运算结果说明补偿法的物理意义（可以考虑使用“补偿电流”的方法）。
+
     \newpage
     \bibliography{report}
     \bibliographystyle{unsrt}
