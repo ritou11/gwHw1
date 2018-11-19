@@ -136,6 +136,7 @@ disp(Ybus - Y);
     TODO：编程技巧
     \subsection{题目3}
     \paragraph{题目描述} 探讨Y矩阵的各类特性（包括但不限于：稀疏性、对角占优、非奇异性等），并用计算结果进行验证。
+
     编写验证程序如\cref{lst:q1q3p1}所示，结果如\cref{lst:q1q3p2,fig:diagpri}示。
 
     可见，对于稀疏性而言，计算矩阵的稀疏度（非零元素数量占比）结果为0.3333，这表明矩阵只有33.33\%的元素是非零的，因此是稀疏的。对于对角占优性而言，\cref{fig:diagpri}描述了矩阵每行对角元绝对值和每行除去对角元外的最大绝对值元素绝对值的比值分布。可以看到，对于IEEE-9节点网络和IEEE-118节点网络来说，大部分的比值都分布在1的右侧，这表明绝大多数行都是对角占优的。特别对于IEEE-9节点网络来说，所有行都可以认为是对角占优的。对于非奇异性而言，计算矩阵的行列式，得到2.443e+09，远大于0，说明矩阵时非奇异的。
@@ -173,6 +174,18 @@ non-singularity
     \end{figure}
     \subsection{题目4}
     \paragraph{题目描述} 实现对Y矩阵的因子表分解（分步进行，明确操作流程与原理）
+
+    使用课堂上讲解的分解算法，LU分解及LDU分解程序见附录中的\cref{lst:calcLU,lst:calcLDU}。通过验证程序计算分解后与原矩阵偏差的二阶矩，可以验证分解结果的正确性，如\cref{lst:q1q4p1}所示。可见，分解误差非常接近于0，所实现的因子表分解算法是正确的。
+    \begin{lstlisting}[language=matlab,label=lst:q1q4p1,caption={因子表分解及正确性验证}]
+%% LDU
+disp('LDU');
+[L, U] = calcLU(Y);
+fprintf('LU error = %s\n', norm(full(L*U - Y)));
+% 输出：LU error = 3.828143e-15
+[L, D, U] = calcLDU(Y);
+fprintf('LDU error = %s\n', norm(full(L*D*U - Y)));
+% 输出：LDU error = 1.917847e-15
+    \end{lstlisting}
     \section{网络方程修正解法}
     已知Y、Z为case9标准系统的导纳、阻抗矩阵，已知Y的LDU分解。现在case9系统的7、9节点间添加一条支路，参数见r、x、b分别为0.0213、0.108、0.239（标幺值）。
     \subsection{题目1}
