@@ -212,7 +212,7 @@ Ml = sparse([inn,jnn],1,[1,-1],N,1);
 Ym = Y + Ml*yl*Ml' + sparse([inn,jnn],[inn,jnn],[1j;1j]*bl,N,N);
       \end{lstlisting}
       \item 修正阻抗矩阵。\\
-      
+
       \begin{lstlisting}[language=matlab]
 %% Modify Z
 % Add line reactance
@@ -227,7 +227,7 @@ Zm = Zm - Zm(:,jnn)/zl*Zm(jnn,:);
       \end{lstlisting}
     \end{enumerate}
     \subsubsection{导纳矩阵修正}
-    该修正方法和参考程序类似。区别在于使用了一种编程技巧，即读取了MATPOWER的标号函数，将原来的常数下标换成了F_BUS、T_BUS这样的变量，使得程序易读。
+    该修正方法和参考程序类似。区别在于使用了一种编程技巧，即读取了MATPOWER的标号函数，将原来的常数下标换成了F\_BUS、T\_BUS这样的变量，使得程序易读。
     \begin{lstlisting}[language=matlab,label=lst:q2q1p1,caption={导纳矩阵修正程序}]
 %% Modify Y
 mpc_m = case9_modified();
