@@ -190,6 +190,72 @@ fprintf('LDU error = %s\n', norm(full(L*D*U - Y)));
     已知Y、Z为case9标准系统的导纳、阻抗矩阵，已知Y的LDU分解。现在case9系统的7、9节点间添加一条支路，参数见r、x、b分别为0.0213、0.108、0.239（标幺值）。
     \subsection{题目1}
     \paragraph{题目描述} 阅读参考程序2，理解并解读每一模块的功能与实现方法。试用自己的方法求新系统的导纳、阻抗矩阵。
+    \subsubsection{程序解读}
+    \begin{enumerate}
+      \item 导入新模型并给出相关变量。其中inn、jnn分别为新支路的首尾节点编号。
+      \begin{lstlisting}[language=matlab]
+%% previous
+expY();
+Zi = inv(Y);
+%% Import case
+mpc_m = case9_modified();
+inn = mpc_m.branch(end,1);
+jnn = mpc_m.branch(end,2);
+      \end{lstlisting}
+      \item 修正导纳矩阵。\\
+      首先计算新增支路的导纳，以及支路两端等效的接地导纳。然后构造新支路的关联矢量，并将修正块加到原矩阵上。最后将接地导纳加到原矩阵的对角元上，完成修正。
+      \begin{lstlisting}[language=matlab]
+%% Modify Y
+yl = 1./(mpc_m.branch(end,3)+1j*mpc_m.branch(end,4));
+bl = mpc_m.branch(end,5)/2;
+Ml = sparse([inn,jnn],1,[1,-1],N,1);
+Ym = Y + Ml*yl*Ml' + sparse([inn,jnn],[inn,jnn],[1j;1j]*bl,N,N);
+      \end{lstlisting}
+      \item 修正阻抗矩阵。\\
+      
+      \begin{lstlisting}[language=matlab]
+%% Modify Z
+% Add line reactance
+zl = 1/yl + Ml'*Zi*Ml;
+Zm = Zi - Zi*Ml/zl*Ml'*Zi;
+% Add shunt reactance at initial
+zl = -1j/bl + Zm(inn,inn);
+Zm = Zm - Zm(:,inn)/zl*Zm(inn,:);
+% Add shunt reactance at end
+zl = -1j/bl + Zm(jnn,jnn);
+Zm = Zm - Zm(:,jnn)/zl*Zm(jnn,:);
+      \end{lstlisting}
+    \end{enumerate}
+    \subsubsection{导纳矩阵修正}
+    该修正方法和参考程序类似。区别在于使用了一种编程技巧，即读取了MATPOWER的标号函数，将原来的常数下标换成了F_BUS、T_BUS这样的变量，使得程序易读。
+    \begin{lstlisting}[language=matlab,label=lst:q2q1p1,caption={导纳矩阵修正程序}]
+%% Modify Y
+mpc_m = case9_modified();
+mpYm = makeYbus(mpc_m);
+
+fbn = mpc_m.branch(end, F_BUS);
+tbn = mpc_m.branch(end, T_BUS);
+ybr = 1./(mpc_m.branch(end, BR_R) + 1j*mpc_m.branch(end, BR_X));
+bbn = mpc_m.branch(end, BR_B) / 2;
+Ml = sparse([fbn tbn], [1 1], [1 -1], N, 1);
+Ym = Y + Ml * ybr * Ml' + sparse([fbn tbn], [fbn tbn], [1j 1j] * bbn, N, N);
+disp('modify Y');
+fprintf('Ym error = %s\n', norm(full(Ym - mpYm)));
+    \end{lstlisting}
+    \subsubsection{阻抗矩阵修正}
+
+    \begin{lstlisting}[language=matlab,label=lst:q2q1p2,caption={阻抗矩阵修正程序}]
+%% Modify Z
+Z = inv(Y);
+zaa = mpc_m.branch(end, BR_R) + 1j*mpc_m.branch(end, BR_X) + Ml' * Z * Ml;
+Zm = Z - Z * Ml / zaa * Ml' * Z;
+zaa = 1 / (1j * bbn) + Zm(fbn, fbn);
+Zm = Zm - Zm(:, fbn) / zaa * Zm(fbn, :);
+zaa = 1 / (1j * bbn) + Zm(tbn, tbn);
+Zm = Zm - Zm(:, tbn) / zaa * Zm(tbn, :);
+disp('modify Z');
+fprintf('Zm error = %s\n', norm(full(Zm - inv(mpYm))));
+    \end{lstlisting}
     \subsection{题目2}
     \paragraph{题目描述} 讨论并验证在已添加支路的系统中去除该支路的LDU修正方法与结果。请思考：需要做几次修正？因子表的秩1因子修正与局部再分解的计算效率如何？修正法的应用场景与意义？
     \subsection{题目3}
