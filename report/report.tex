@@ -1,16 +1,12 @@
 \documentclass[a4paper,12pt]{article}
 \usepackage[noabs,notoc]{HaotianReport}
+\usepackage[numbered]{matlab-prettifier} % for matlab code
 
 \title{第一次作业}
 \author{刘昊天}
 \authorinfo{电博181班, 2018310648}
 \runninghead{高等电力网络分析}
 \studytime{2018年11月}
-
-\lstset{
-style = Matlab-editor,
-basicstyle = \mlttfamily
-}
 
 \begin{document}
     \maketitle
@@ -21,7 +17,7 @@ basicstyle = \mlttfamily
     \subsubsection{程序解读}
     \begin{enumerate}
       \item 导入MatPower的IEEE 9节点模型，并给出了模型信息。N为节点数量，b为支路数量。
-      \begin{lstlisting}[language=matlab]
+      \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 mpc = case9();
 N = size(mpc.bus,1);
 b = size(mpc.branch,1);
@@ -34,7 +30,7 @@ b = size(mpc.branch,1);
         y_i = (R_i + j \cdot X_i)^{-1}, i\in[1, b]
       \end{equation}
       最后生成不包含接地支路的导纳矩阵Y。\\
-      \begin{lstlisting}[language=matlab]
+      \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 A = sparse(mpc.branch(:,1:2),[1:b,1:b]',[ones(b,1),-ones(b,1)]);
 yb = spdiags(1./(mpc.branch(:,3)+1j*mpc.branch(:,4)),0,b,b);
 Y = A*yb*A';
@@ -45,13 +41,13 @@ display(det(Y));
       首先生成节点支路关联矩阵A，使用稀疏矩阵进行存储。由于为接地支路，因此节点与支路之间的关联元素均为1。构建A的目的，是为了从支路的对地导纳中等效出节点的接地导纳。
       其次使用A从支路上等效出节点的接地导纳，并生成节点接地导纳向量y0。每条线路使用$\pi$型等值电路，对地导纳等效在线路两侧，各1/2。同时每个节点有自身的对地导纳，储存在bus矩阵的第五列（电导）与第六列（电纳）中。
       最后，将接地导纳向量y0加到Y矩阵的对角元上，形成导纳矩阵Y。
-      \begin{lstlisting}[language=matlab]
+      \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 A = sparse(mpc.branch(:,1:2),[1:b,1:b]',ones(b,2));
 y0 = A*1j*mpc.branch(:,5)/2 + mpc.bus(mpc.bus(:,1),5)+1j*mpc.bus(mpc.bus(:,1),6);
 Y = Y + spdiags(y0,0,N,N);
       \end{lstlisting}
       \item 生成不定导纳矩阵Y0并测试奇异性
-      \begin{lstlisting}[language=matlab]
+      \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 Y0 = [Y,-y0;-y0.',sum(y0)];
 display(det(Y0));
       \end{lstlisting}
@@ -59,7 +55,7 @@ display(det(Y0));
     \end{enumerate}
     \subsubsection{不定导纳矩阵Y0生成}
     生成Y0矩阵时，不同于参考程序的思路，我们可以将大地节点作为N+1号节点，直接写出全网的节点支路关联矩阵，并计算全网的支路导纳。对于线路的对地导纳，我们可以用$\pi$形等值电路将导纳等效到节点上；对于节点的接地导纳，可以将其看做一条对地的支路。该思路生成Y0的程序如\cref{lst:q1p1}所示。
-    \begin{lstlisting}[language=matlab,label=lst:q1p1,caption={不定节点导纳矩阵Y0生成程序}]
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q1p1,caption={不定节点导纳矩阵Y0生成程序}]
 %% A0
 nodeA = [mpc.branch(:,1);mpc.branch(:,2);(N+1)*ones(N,1);(1:N)'];
 branchA = [1:b,1:b,b+(1:N),b+(1:N)]';
@@ -74,14 +70,14 @@ Y0 = A0*yb*A0';
     \end{lstlisting}
     \subsubsection{导纳矩阵Y生成}
     由于大地节点是N+1号节点，因此直接截取Y0阵的前N行N列，即可得到导纳矩阵Y。
-    \begin{lstlisting}[language=matlab]
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 Y = Y0(1:N, 1:N);
     \end{lstlisting}
     \subsection{题目2}
     \paragraph{题目描述} 调用matpower的makeYbus函数生成导纳矩阵Y，对比自己得到的Y，是否一致？请仔细阅读makeYbus函数及matpower手册，解释matpower生成Y矩阵的原理，注意其对移相器、变压器、接地支路的处理方法。发掘matpower在计算实现过程中涉及到的编程技巧。
 
     调用makeYbus函数计算得到Ybus矩阵，同自己生成的Y进行对比，程序及得到结果如下。该误差非常小，属于计算过程中由于步骤的不同，导致的浮点误差。因此自己得到的Y和makeYbus生成的导纳矩阵是一致的。
-    \begin{lstlisting}[language=matlab]
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 %% makeYbus
 disp('makeYbus');
 [Ybus, ~, ~] = makeYbus(mpc);
@@ -146,7 +142,7 @@ disp(Ybus - Y);
 
     可见，对于稀疏性而言，计算矩阵的稀疏度（非零元素数量占比）结果为0.3333，这表明矩阵只有33.33\%的元素是非零的，因此是稀疏的。对于对角占优性而言，\cref{fig:diagpri}描述了矩阵每行对角元绝对值和每行除去对角元外的最大绝对值元素绝对值的比值分布。可以看到，对于IEEE-9节点网络和IEEE-118节点网络来说，大部分的比值都分布在1的右侧，这表明绝大多数行都是对角占优的。特别对于IEEE-9节点网络来说，所有行都可以认为是对角占优的。对于非奇异性而言，计算矩阵的行列式，得到2.443e+09，远大于0，说明矩阵时非奇异的。
 
-    \begin{lstlisting}[language=matlab,label=lst:q1q3p1,caption={矩阵特性验证程序}]
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q1q3p1,caption={矩阵特性验证程序}]
 %% feature of Y
 disp('sparse');
 fprintf('sparse degree = %.3f\n', nnz(Y)/numel(Y));
@@ -181,7 +177,7 @@ non-singularity
     \paragraph{题目描述} 实现对Y矩阵的因子表分解（分步进行，明确操作流程与原理）
 
     使用课堂上讲解的分解算法，LU分解及LDU分解程序见附录中的\cref{lst:calcLU,lst:calcLDU}。通过验证程序计算分解后与原矩阵偏差的二阶矩，可以验证分解结果的正确性，如\cref{lst:q1q4p1}所示。可见，分解误差非常接近于0，所实现的因子表分解算法是正确的。
-    \begin{lstlisting}[language=matlab,label=lst:q1q4p1,caption={因子表分解及正确性验证}]
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q1q4p1,caption={因子表分解及正确性验证}]
 %% LDU
 disp('LDU');
 [L, U] = calcLU(Y);
@@ -198,7 +194,7 @@ fprintf('LDU error = %s\n', norm(full(L*D*U - Y)));
     \subsubsection{程序解读}
     \begin{enumerate}
       \item 导入新模型并给出相关变量。其中inn、jnn分别为新支路的首尾节点编号。
-      \begin{lstlisting}[language=matlab]
+      \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 %% previous
 expY();
 Zi = inv(Y);
@@ -209,7 +205,7 @@ jnn = mpc_m.branch(end,2);
       \end{lstlisting}
       \item 修正导纳矩阵。\\
       首先计算新增支路的导纳，以及支路两端等效的接地导纳。然后构造新支路的关联矢量，并将修正块加到原矩阵上。最后将接地导纳加到原矩阵的对角元上，完成修正。
-      \begin{lstlisting}[language=matlab]
+      \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 %% Modify Y
 yl = 1./(mpc_m.branch(end,3)+1j*mpc_m.branch(end,4));
 bl = mpc_m.branch(end,5)/2;
@@ -225,7 +221,7 @@ Ym = Y + Ml*yl*Ml' + sparse([inn,jnn],[inn,jnn],[1j;1j]*bl,N,N);
           \widetilde z_{\alpha\alpha}&=y_\alpha^{-1}+M_\alpha^T Z_0 M_\alpha
         \end{aligned}
       \end{equation}
-      \begin{lstlisting}[language=matlab]
+      \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 %% Modify Z
 % Add line reactance
 zl = 1/yl + Ml'*Zi*Ml;
@@ -240,11 +236,11 @@ Zm = Zm - Zm(:,jnn)/zl*Zm(jnn,:);
     \end{enumerate}
     \subsubsection{导纳矩阵修正}
     该修正方法和参考程序类似。区别在于使用了一种编程技巧，即读取了MATPOWER的标号函数，将原来的常数下标换成了F\_BUS、T\_BUS这样的变量，使得程序易读。TODO
-    \begin{lstlisting}[language=matlab,label=lst:q2q1p1,caption={导纳矩阵修正程序}]
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q2q1p1,caption={导纳矩阵修正程序}]
     \end{lstlisting}
     \subsubsection{阻抗矩阵修正}
     TODO。本报告所采用的的
-    \begin{lstlisting}[language=matlab,label=lst:q2q1p2,caption={阻抗矩阵修正程序}]
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q2q1p2,caption={阻抗矩阵修正程序}]
     \end{lstlisting}
     \subsection{题目2}
     \paragraph{题目描述} 讨论并验证在已添加支路的系统中去除该支路的LDU修正方法与结果。请思考：需要做几次修正？因子表的秩1因子修正与局部再分解的计算效率如何？修正法的应用场景与意义？
@@ -327,7 +323,7 @@ Zm = Zm - Zm(:,jnn)/zl*Zm(jnn,:);
     根据以上原理，设计迭代算法，同课件上给出的一致。特别地，此处问题为对称修正，可以认为$M=N, L=U^T$，利用该条件可以化简算法，实现程序见\cref{lst:modifyLDUr1_org}。进一步使用稀疏矢量技术，算法效率得到提升，实现程序见\cref{lst:modifyLDUr1}。另外，\cref{lst:generateSm}中实现了道路集的获取，这是稀疏矢量技术所需要的。
 
     在本例中，应用秩1因子修正法的程序如\cref{lst:q2q2r1}所示。去除该支路分三步进行，分别去除支路导纳、首节点接地导纳、尾节点接地导纳。为了验证修正的正确性，将其与直接去除支路得到的Y阵进行比较，并计算误差的二阶矩。结果显示，误差很小，证明本方法正确。
-    \begin{lstlisting}[language=matlab,caption={秩1因子修正法去除支路},label=lst:q2q2r1]
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,caption={秩1因子修正法去除支路},label=lst:q2q2r1]
 [L, D, U] = calcLDU(mpYm);
 [Lm1, Dm1, Um1] = modifyLDUr1(D, U, Ml, -ybr);
 [Lm1, Dm1, Um1] = modifyLDUr1(Dm1, Um1, sparse(fbn, 1, 1, N, 1), -1j * bbn);
@@ -348,7 +344,7 @@ fprintf('ldu-r1 error = %s\n', norm(full(Y - Lm1*Dm1*Um1)));
     \paragraph{题目描述} 探讨并用运算结果说明补偿法的物理意义（可以考虑使用“补偿电流”的方法）。
     补偿电流法步骤
 
-    \begin{lstlisting}[language=matlab,label=lst:q2q1p2,caption={补偿电流法}]
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q2q1p2,caption={补偿电流法}]
     \end{lstlisting}
 
     \newpage
@@ -356,14 +352,14 @@ fprintf('ldu-r1 error = %s\n', norm(full(Y - Lm1*Dm1*Um1)));
     \bibliographystyle{unsrt}
     \appendix
     \section{程序清单}
-      \lstinputlisting[language=matlab,label=lst:hwtask,caption={全部作业任务}]{../hwtask.m}
-      \lstinputlisting[language=matlab,label=lst:calcLU,caption={LU分解}]{../calcLU.m}
-      \lstinputlisting[language=matlab,label=lst:calcLDU,caption={LDU分解}]{../calcLDU.m}
-      \lstinputlisting[language=matlab,label=lst:generateSm,caption={生成道路集}]{../generateSm.m}
-      \lstinputlisting[language=matlab,label=lst:modifyLDUr1_org,caption={秩1因子法因子修正}]{../modifyLDUr1_org.m}
-      \lstinputlisting[language=matlab,label=lst:modifyLDUr1,caption={秩1因子法因子修正（稀疏向量）}]{../modifyLDUr1.m}
-      \lstinputlisting[language=matlab,label=lst:modifyLDUlr,caption={局部再分解法因子修正}]{../modifyLDUlr.m}
-      \lstinputlisting[language=matlab,label=lst:histDiagPri,caption={观察主对角占优}]{../histDiagPri.m}
+      \lstinputlisting[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:hwtask,caption={全部作业任务}]{../hwtask.m}
+      \lstinputlisting[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:calcLU,caption={LU分解}]{../calcLU.m}
+      \lstinputlisting[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:calcLDU,caption={LDU分解}]{../calcLDU.m}
+      \lstinputlisting[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:generateSm,caption={生成道路集}]{../generateSm.m}
+      \lstinputlisting[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:modifyLDUr1_org,caption={秩1因子法因子修正}]{../modifyLDUr1_org.m}
+      \lstinputlisting[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:modifyLDUr1,caption={秩1因子法因子修正（稀疏向量）}]{../modifyLDUr1.m}
+      \lstinputlisting[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:modifyLDUlr,caption={局部再分解法因子修正}]{../modifyLDUlr.m}
+      \lstinputlisting[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:histDiagPri,caption={观察主对角占优}]{../histDiagPri.m}
     \label{applastpage}
 \iffalse
 \begin{itemize}[noitemsep,topsep=0pt]

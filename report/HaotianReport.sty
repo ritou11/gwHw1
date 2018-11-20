@@ -14,7 +14,6 @@
 \RequirePackage{ifthen}         % logic options
 \RequirePackage{lastpage}       % refer to the number of last page
 \RequirePackage{listings}       % format source code
-\usepackage[numbered]{matlab-prettifier} % for matlab code
 \RequirePackage[toc,page,title,titletoc,header]{appendix}%附录制作
 \RequirePackage{paralist}
 %\RequirePackage[english]{isodate}
@@ -176,6 +175,7 @@
 \definecolor{darkgreen}{rgb}{0,0.3,0}
 \definecolor{darkblue}{rgb}{0,0,0.3}
 \def\lstbasicfont{\fontfamily{pcr}\selectfont\footnotesize}
+\lstloadlanguages{C,C++,Java,Matlab,Mathematica}
 \lstset{%
 % indexing
    % numbers=left,
@@ -192,7 +192,6 @@
     commentstyle=\color{darkgreen},%\itshape,%
     stringstyle=\color{black}%
 }
-\lstloadlanguages{C,C++,Java,Matlab,Mathematica}
 \lstdefinestyle{sharpc}{breaklines=true,language=[Sharp]C}
 \newcommand\crefpairgroupconjunction{和}\newcommand\crefmiddlegroupconjunction{、}\newcommand\creflastgroupconjunction{和}
 \newcommand\crefrangeconjunction{至}\newcommand\crefrangepreconjunction{}\newcommand\crefrangepostconjunction{}
