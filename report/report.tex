@@ -7,6 +7,11 @@
 \runninghead{高等电力网络分析}
 \studytime{2018年11月}
 
+\lstset{
+style = Matlab-editor,
+basicstyle = \mlttfamily
+}
+
 \begin{document}
     \maketitle
     %\newpage
@@ -320,6 +325,17 @@ Zm = Zm - Zm(:,jnn)/zl*Zm(jnn,:);
     \end{equation}
 
     根据以上原理，设计迭代算法，同课件上给出的一致。特别地，此处问题为对称修正，可以认为$M=N, L=U^T$，利用该条件可以化简算法，实现程序见\cref{lst:modifyLDUr1_org}。进一步使用稀疏矢量技术，算法效率得到提升，实现程序见\cref{lst:modifyLDUr1}。另外，\cref{lst:generateSm}中实现了道路集的获取，这是稀疏矢量技术所需要的。
+
+    在本例中，应用秩1因子修正法的程序如\cref{lst:q2q2r1}所示。去除该支路分三步进行，分别去除支路导纳、首节点接地导纳、尾节点接地导纳。为了验证修正的正确性，将其与直接去除支路得到的Y阵进行比较，并计算误差的二阶矩。结果显示，误差很小，证明本方法正确。
+    \begin{lstlisting}[language=matlab,caption={秩1因子修正法去除支路},label=lst:q2q2r1]
+[L, D, U] = calcLDU(mpYm);
+[Lm1, Dm1, Um1] = modifyLDUr1(D, U, Ml, -ybr);
+[Lm1, Dm1, Um1] = modifyLDUr1(Dm1, Um1, sparse(fbn, 1, 1, N, 1), -1j * bbn);
+[Lm1, Dm1, Um1] = modifyLDUr1(Dm1, Um1, sparse(tbn, 1, 1, N, 1), -1j * bbn);
+disp('modify LDU - Rank 1');
+fprintf('ldu-r1 error = %s\n', norm(full(Y - Lm1*Dm1*Um1)));
+% 输出：ldu-r1 error = 6.776442e-15
+    \end{lstlisting}
     \subsubsection{局部再分解法}
     TODO修正原理
     实现程序见\cref{lst:modifyLDUlr}。
