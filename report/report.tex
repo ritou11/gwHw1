@@ -216,8 +216,8 @@ Ym = Y + Ml*yl*Ml' + sparse([inn,jnn],[inn,jnn],[1j;1j]*bl,N,N);
       \begin{equation}
         \begin{aligned}
           Y &= Y_0+M_\alpha y_\alpha M_\alpha^T\\
-          Z=Y^{-1}&= Z_0 -Z_0 M_\alpha \bar z_{\alpha\alpha} M_\alpha^T Z_0\\
-          \bar z_{\alpha\alpha}&=y_\alpha^{-1}+M_\alpha^T Z_0 M_\alpha
+          Z=Y^{-1}&= Z_0 -Z_0 M_\alpha \widetilde z_{\alpha\alpha} M_\alpha^T Z_0\\
+          \widetilde z_{\alpha\alpha}&=y_\alpha^{-1}+M_\alpha^T Z_0 M_\alpha
         \end{aligned}
       \end{equation}
       \begin{lstlisting}[language=matlab]
@@ -247,8 +247,79 @@ Zm = Zm - Zm(:,jnn)/zl*Zm(jnn,:);
     去除该支路的方法是添加一条负支路，其线路导纳与对地导纳和原支路符号相反，其他参数与原支路相同。这种情形下，可以采用秩1因子修正法或局部再分解法。
 
     \subsubsection{秩1因子修正法}
-    TODO修正原理
-    实现程序见\cref{lst:modifyLDUr1_org}，使用稀疏矢量技术的实现程序见\cref{lst:modifyLDUr1}。另外，\cref{lst:generateSm}中实现了道路集的获取，这是稀疏矢量技术所需要的。
+    对于一个一般的矩阵，其秩1因子分解的修正可表示为
+    \begin{equation}
+      \label{eq:r1eq}
+      \widetilde A = A + \Delta A = A + MaN^T = LDU + MaN^T = \widetilde L \widetilde D \widetilde U
+    \end{equation}
+    其中a为标量。
+
+    先考虑矩阵的第一行第一列。将$L,D,U$首行首列的元素分块写出，并将$M,N$的首行元素也分块写出
+    \begin{equation}
+      \widetilde L = \begin{bmatrix}
+        1 & \\
+        \widetilde l_1 & \widetilde L_1
+      \end{bmatrix}, \widetilde D = \begin{bmatrix}
+        \widetilde d_1 & \\
+         & \widetilde D_1
+      \end{bmatrix}, \widetilde U = \begin{bmatrix}
+        1 & \widetilde u_1\\
+         & \widetilde U_1
+      \end{bmatrix}, M = \begin{bmatrix}
+        m_1 \\ M_1
+      \end{bmatrix}, N = \begin{bmatrix}
+        n_1 \\ N_1
+      \end{bmatrix}
+    \end{equation}
+
+    将矩阵的分块形式带入\cref{eq:r1eq}，可以得到方程
+    \begin{equation}
+      \label{eq:r1meq}
+      \begin{aligned}
+        \widetilde L \widetilde D \widetilde U &= LDU + MaN^T\\
+        \begin{bmatrix}
+          \widetilde d_1 & \widetilde d_1 \widetilde u_1 \\
+          \widetilde l_1 \widetilde d_1 & \widetilde l_1 \widetilde d_1 \widetilde u_1 + \widetilde L_1 \widetilde D_1 \widetilde U_1
+        \end{bmatrix}& = \begin{bmatrix}
+          d_1 & d_1 u_1\\
+          l_1 d_1 & l_1 d_1 u_1 + L_1 D_1 U_1
+        \end{bmatrix} + \begin{bmatrix}
+          m_1an_1&m_1aN_1^T\\
+          M_1an_1&M_1aN_1^T
+        \end{bmatrix}
+      \end{aligned}
+    \end{equation}
+
+    \cref{eq:r1meq}中有四个分块方程，使用左上、右上、左下三个方程可以求得$\widetilde l_1, \widetilde d_1, \widetilde u_1$的表达式
+    \begin{equation}
+      \begin{aligned}
+        \widetilde d_1 &= d_1 +m_1an_1\\
+        \widetilde l_1 &= l_1+\widetilde M_1 a n_1 \widetilde d_1^{-1}\\
+        \widetilde u_1 &= u_1+\widetilde d_1^{-1}m_1a\widetilde N_1^T
+      \end{aligned}
+    \end{equation}
+    其中$\widetilde M_1=M_1-l_1m_1, \widetilde N_1^T=N_1^T-n_1u_1$。
+
+    对于右下角的方程，可以化为新问题
+    \begin{equation}
+      \left\{
+        \begin{array}{l}
+          \widetilde A_1 = \widetilde L_1 \widetilde D_1 \widetilde U_1 = A_1 + \Delta A_1 \\
+          A_1 = L_1 D_1 U_1\\
+          \Delta A_1 = l_1d_1u_1-\widetilde l_1 \widetilde d_1 \widetilde u_1 + M_1aN_1^T
+        \end{array}
+      \right.
+    \end{equation}
+    化简$\Delta A_1$可得
+    \begin{equation}
+      \Delta A_1=\widetilde M_1 \widetilde a \widetilde N_1^T
+    \end{equation}
+    其中
+    \begin{equation}
+      \widetilde a=a-an_1\widetilde d_1^{-1}m_1a
+    \end{equation}
+
+    根据以上原理，设计迭代算法，同课件上给出的一致。特别地，此处问题为对称修正，可以认为$M=N, L=U^T$，利用该条件可以化简算法，实现程序见\cref{lst:modifyLDUr1_org}。进一步使用稀疏矢量技术，算法效率得到提升，实现程序见\cref{lst:modifyLDUr1}。另外，\cref{lst:generateSm}中实现了道路集的获取，这是稀疏矢量技术所需要的。
     \subsubsection{局部再分解法}
     TODO修正原理
     实现程序见\cref{lst:modifyLDUlr}。
@@ -260,7 +331,7 @@ Zm = Zm - Zm(:,jnn)/zl*Zm(jnn,:);
     \subsection{题目3}
     \paragraph{题目描述} 探讨并用运算结果说明补偿法的物理意义（可以考虑使用“补偿电流”的方法）。
     补偿电流法步骤
-    
+
     \begin{lstlisting}[language=matlab,label=lst:q2q1p2,caption={补偿电流法}]
     \end{lstlisting}
 
