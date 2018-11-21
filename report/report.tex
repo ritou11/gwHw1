@@ -333,20 +333,150 @@ fprintf('ldu-r1 error = %s\n', norm(full(Y - Lm1*Dm1*Um1)));
 % 输出：ldu-r1 error = 6.776442e-15
     \end{lstlisting}
     \subsubsection{局部再分解法}
-    TODO修正原理
-    实现程序见\cref{lst:modifyLDUlr}。
-    \subsubsection{方法比较}
+    如果被修正部分集中在矩阵的右下角，则可以推导因子表的局部再分解方法。如果分布在矩阵当中，则根据受影响的范围（可证明为道路集）将该子矩阵视为右下角，从而修正矩阵。因此，可以首先假设修正是集中在右下角的。
 
+    将原网络矩阵因子分解写成分块形式
+    \begin{equation}
+      \begin{aligned}
+        A=\begin{bmatrix}
+          A_{11}&A_{12}\\A_{21}&A_{22}
+      \end{bmatrix}&=\begin{bmatrix}
+        L_{11}&0\\L_{21}&L_{22}
+      \end{bmatrix} \begin{bmatrix}
+        D_{11}&0\\0&D_{22}
+      \end{bmatrix} \begin{bmatrix}
+        U_{11}&U_{12}\\0&U_{22}
+      \end{bmatrix} \\
+      &=\begin{bmatrix}
+        L_{11}D_{11}U_{11} & L_{11}D_{11}U_{11}\\
+        L_{21}D_{11}U_{11} & L_{21}D_{11}U_{12} + L_{22}D_{22}U_{22}
+    \end{bmatrix}
+      \end{aligned}
+    \end{equation}
+    修正矩阵可写成分块形式
+    \begin{equation}
+      \begin{aligned}
+        \widetilde A&=A+\Delta A=\begin{bmatrix}
+        A_{11} & A_{12}\\ A_{21} & \widetilde A_{22}
+      \end{bmatrix} \\
+      \widetilde A_{22} = A_{22} + \Delta A_{22}
+      \end{aligned}
+    \end{equation}
+    因子再分解过程也可以写成分块形式，下式可以通过矩阵乘法验证
+    \begin{equation}
+      \begin{aligned}
+        \widetilde A &= \begin{bmatrix}
+          A_{11}&A_{12}\\A_{21}&\widetilde A_{22}
+        \end{bmatrix}=\begin{bmatrix}
+          L_{11}&0\\L_{21}&\widetilde L_{22}
+        \end{bmatrix} \begin{bmatrix}
+          D_{11}&0\\0&\widetilde D_{22}
+        \end{bmatrix} \begin{bmatrix}
+          U_{11}&U_{12}\\0&\widetilde U_{22}
+        \end{bmatrix} \\
+      &=\begin{bmatrix}
+        L_{11}D_{11}U_{11} & L_{11}D_{11}U_{11}\\
+        L_{21}D_{11}U_{11} & L_{21}D_{11}U_{12} + \widetilde L_{22}\widetilde D_{22}\widetilde U_{22}
+      \end{bmatrix} \\
+        \widetilde A_{22} &= L_{21}D_{11}U_{12} + \widetilde L_{22}\widetilde D_{22}\widetilde U_{22}
+      \end{aligned}
+    \end{equation}
+    变换形式可得
+    \begin{equation}
+      \widetilde A_{22}-A_{22}=\widetilde L_{22}\widetilde D_{22}\widetilde U_{22}-L_{22}D_{22}U_{22}=\Delta A_{22}
+    \end{equation}
+    令
+    \begin{equation}
+      \begin{aligned}
+        \widetilde A_{22}'&=\widetilde L_{22}\widetilde D_{22}\widetilde U_{22}\\
+        A_{22}'&=L_{22}D_{22}U_{22}
+      \end{aligned}
+    \end{equation}
+    则有
+    \begin{equation}
+      \widetilde A_{22}'=A_{22}'+\Delta A_{22}
+    \end{equation}
+    由此可见，每次修正只需要求出$A_{22}'$，并将其修正，最后再分解即可。
+
+    局部再分解法的实现程序见\cref{lst:modifyLDUlr}，\cref{lst:generateSm}给出了道路集的求解方法。
+
+    在本例中，修正的方式是首先导出一个$3\times 3$的矩阵修正块，代表对支路导纳及支路两端接地导纳的去除，随后将该修正块利用局部再分解法进行修正。为了验证修正的正确性，将其与直接去除支路得到的Y阵进行比较，并计算误差的二阶矩。修正程序及输出结果如\cref{lst:q2q2lr}所示。结果显示，误差很小，证明本方法正确。
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q2q2lr,caption={秩1因子修正法去除支路}]
+%% Modify LDU - Local Re
+dY = sparse([fbn, tbn], [fbn, tbn], [-1j * bbn, -1j * bbn], N, N);
+dY = dY + Ml * -ybr * Ml.';
+[Lm2, Dm2, Um2] = modifyLDUlr(D, U, dY);
+disp('modify LDU - Local Re');
+fprintf('ldu-lr error = %s\n', norm(full(Y - Lm2*Dm2*Um2)));
+% 输出：ldu-lr error = 1.046696e-14
+    \end{lstlisting}
+    \subsubsection{方法比较}
+    TODO
     \subsubsection{应用场景与意义}
-    在修正范围小，受影响的节点少的情况下，
+    在修正范围小，受影响的节点少的情况下，TODO
 
     \subsection{题目3}
     \paragraph{题目描述} 探讨并用运算结果说明补偿法的物理意义（可以考虑使用“补偿电流”的方法）。
-    补偿电流法步骤
+    \subsubsection{补偿电流法推导}
+    为了解释补偿电流法的物理意义，本节对补偿电流法进行推导，以展示该方法的过程。首先应明确补偿法应用的场合，即物理背景。补偿法特别适用于注入电流不变，而又要对网络中不同部分发生局部变化时求网络方程的解（电压）的应用场合。这时通过矩阵求逆辅助定理，可以将网络的修正等效到电压或电流或前代回代计算中间量的变化上。这样只需要利用原来的导纳矩阵的因子表进行前代回代求解，省去了重新分解因子表的计算量。
 
-    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q2q1p2,caption={补偿电流法}]
+    在电流不变的假设下，有
+    \begin{equation}
+      \begin{aligned}
+        YV&=I\\
+        (Y+\Delta Y)\widetilde V&=I\\
+        \Delta Y&=M\delta y M^T
+      \end{aligned}
+    \end{equation}
+    使用矩阵求逆辅助定理，有
+    \begin{equation}
+      \begin{aligned}
+        \widetilde V&=(Y^{-1}-Y^{-1}McM^TY^{-1})I\\
+        c&=(\delta y^{-1}+M^TY^{-1}M)^{-1}
+      \end{aligned}
+    \end{equation}
+    使用补偿电流法，可以推导出补偿电流为
+    \begin{equation}
+      \begin{aligned}
+        \Delta I&=-McM^TY^{-1}I\\
+        \widetilde V&=Y^{-1}(I+\Delta I)
+      \end{aligned}
+    \end{equation}
+
+    为了验证补偿电流法的正确性，编写程序及输出结果如\cref{lst:q2q3p1}所示，结果表明误差很小，本方法正确。
+    \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q2q3p1,caption={补偿电流法}]
+%% Compensation method
+% Compensation current
+V = sparse(1:N, 1, 1, N, 1);
+I = Y * V;
+deltay = sparse(1:3, 1:3, -[ybr, 1j * bbn, 1j * bbn], 3, 3);
+M = sparse([fbn, tbn, fbn, tbn], [1,1,2,3], [1,-1,1,1], N, 3);
+c = inv(inv(deltay) + M.' * inv(Y) * M);
+deltaI = - M * c * M.' * inv(Y) * I;
+Is = I + deltaI;
+Vs = Y \ Is;
+Vsorg = mpYm \ I;
+disp('Compensation current');
+fprintf('v error = %s\n', norm(full(Vsorg - Vs)));
+% 输出：TODO
     \end{lstlisting}
+    \subsubsection{补偿电流法物理意义}
+    对于去掉一条支路的情况，可以等效为在一个端口（$i,j,i<j$）上并联一条负阻抗支路$\delta y_l=-y_l$，同样等效为在端口注入一对符号相反的电流，$i$节点注入$-I_{ij}$，$j$节点注入$I_{ij}$，$I_{ij}$为原网络上并联$\delta y_l$后该支路上的电流。本例中$i=7,j=9$。
 
+    为了求解$I_{79}$，可以从(7,9)端口看入做戴维南等效。戴维南等效电动势为端口开路电压，
+    $$\dot E_{79}=M^T \dot V=TODO$$
+    戴维南等效阻抗为
+    $$Z_T=M^TY^{-1}M=TODO$$
+    并联$\delta y_l$后，回路阻抗为
+    $$c^{-1}=\delta y_l^{-1}+Z_T=TODO$$
+    由此计算回路电流为
+    $$\dot I_{ij}=\dot E_{ij}/c^{-1}=cM^TY^{-1}\dot I=TODO$$
+    转换为向量形式的注入电流
+    $$\Delta \dot I=-M\dot I_{ij}=-McM^TY^{-1}\dot I=TODO$$
+    补偿后的注入电流为
+    $$\widetilde {\dot I} = \dot I + \Delta \dot I=TODO$$
+    最终求解得到变化后的网络解（电压）为
+    $$\widetilde {\dot V} = Y^{-1} \widetilde {\dot I} = TODO$$
     \newpage
     \bibliography{report}
     \bibliographystyle{unsrt}
