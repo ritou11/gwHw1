@@ -448,35 +448,66 @@ fprintf('ldu-lr error = %s\n', norm(full(Y - Lm2*Dm2*Um2)));
 %% Compensation method
 % Compensation current
 V = sparse(1:N, 1, 1, N, 1);
-I = Y * V;
+I = Ym * V;
 deltay = sparse(1:3, 1:3, -[ybr, 1j * bbn, 1j * bbn], 3, 3);
 M = sparse([fbn, tbn, fbn, tbn], [1,1,2,3], [1,-1,1,1], N, 3);
-c = inv(inv(deltay) + M.' * inv(Y) * M);
-deltaI = - M * c * M.' * inv(Y) * I;
+c = inv(inv(deltay) + M.' * inv(Ym) * M);
+deltaI = - M * c * M.' * inv(Ym) * I;
 Is = I + deltaI;
-Vs = Y \ Is;
-Vsorg = mpYm \ I;
+Vs = Ym \ Is;
+Vsorg = Y \ I;
 disp('Compensation current');
-fprintf('v error = %s\n', norm(full(Vsorg - Vs)));
-% 输出：TODO
+fprintf('V error = %s\n', norm(full(Vsorg - Vs)));
+% 输出：V error = 1.803487e-15
     \end{lstlisting}
     \subsubsection{补偿电流法物理意义}
     对于去掉一条支路的情况，可以等效为在一个端口（$i,j,i<j$）上并联一条负阻抗支路$\delta y_l=-y_l$，同样等效为在端口注入一对符号相反的电流，$i$节点注入$-I_{ij}$，$j$节点注入$I_{ij}$，$I_{ij}$为原网络上并联$\delta y_l$后该支路上的电流。本例中$i=7,j=9$。
 
+    本题中，令初始电压$\dot V=[1]$，按照本例数据计算得到
+    $$M=\begin{bmatrix}
+      (7,1) & 1\\
+      (9,1) & -1\\
+      (7,2) & 1\\
+      (9,3) & 1
+    \end{bmatrix}$$
+    $$\delta y=diag(\begin{bmatrix}
+      -1.7578 + 8.9126i\\
+      0.0000 - 0.1195i\\
+      0.0000 - 0.1195i
+    \end{bmatrix})$$
+
     为了求解$I_{79}$，可以从(7,9)端口看入做戴维南等效。戴维南等效电动势为端口开路电压，
-    $$\dot E_{79}=M^T \dot V=TODO$$
+    $$\dot E_{79}=M^T \dot V=\begin{bmatrix}
+      0\\1\\1
+    \end{bmatrix}$$
     戴维南等效阻抗为
-    $$Z_T=M^TY^{-1}M=TODO$$
+    $$Z_T=M^TY^{-1}M=\begin{bmatrix}
+    0.0122 + 0.0642i  & 0.0059 + 0.0316i & -0.0063 - 0.0326i\\
+    0.0059 + 0.0316i  & 0.0044 - 0.5994i & -0.0015 - 0.6310i\\
+    -0.0063 - 0.0326i & -0.0015 - 0.6310i &  0.0049 - 0.5984i
+    \end{bmatrix}$$
     并联$\delta y_l$后，回路阻抗为
-    $$c^{-1}=\delta y_l^{-1}+Z_T=TODO$$
+    $$c^{-1}=\delta y_l^{-1}+Z_T=\begin{bmatrix}
+    -0.0091 - 0.0438i &  0.0059 + 0.0316i & -0.0063 - 0.0326i\\
+    0.0059 + 0.0316i &  0.0044 + 7.7688i & -0.0015 - 0.6310i\\
+    -0.0063 - 0.0326i & -0.0015 - 0.6310i&   0.0049 + 7.7698i
+    \end{bmatrix}$$
     由此计算回路电流为
-    $$\dot I_{ij}=\dot E_{ij}/c^{-1}=cM^TY^{-1}\dot I=TODO$$
-    转换为向量形式的注入电流
-    $$\Delta \dot I=-M\dot I_{ij}=-McM^TY^{-1}\dot I=TODO$$
+    $$\dot I_{ij}=c \dot E_{ij}=cM^TY^{-1}\dot I=\begin{bmatrix}
+    0.0008 + 0.0032i\\
+    0.0001 - 0.1401i\\
+    0.0001 - 0.1401i
+    \end{bmatrix}$$
+    转换为向量形式的注入电流(以下为非关键步骤，且结果较长，不在此展示)
+    $$\Delta \dot I=-M\dot I_{ij}=-McM^TY^{-1}\dot I$$
     补偿后的注入电流为
-    $$\widetilde {\dot I} = \dot I + \Delta \dot I=TODO$$
+    $$\widetilde {\dot I} = \dot I + \Delta \dot I$$
     最终求解得到变化后的网络解（电压）为
-    $$\widetilde {\dot V} = Y^{-1} \widetilde {\dot I} = TODO$$
+    $$\widetilde {\dot V} = Y^{-1} \widetilde {\dot I}$$
+    计算同直接修正网络矩阵得到的电压的差值，并求取二阶矩，得到
+    $$||\widetilde {\dot V} - \dot V_2||_2=4.543401\times 10^{-15}$$
+
+    以上步骤及结果表明，此处进行的基于物理意义的步骤是正确的。
     \newpage
     \bibliography{report}
     \bibliographystyle{unsrt}

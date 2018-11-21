@@ -84,13 +84,24 @@ fprintf('ldu-lr error = %s\n', norm(full(Y - Lm2*Dm2*Um2)));
 %% Compensation method
 % Compensation current
 V = sparse(1:N, 1, 1, N, 1);
-I = Y * V;
+I = Ym * V;
 deltay = sparse(1:3, 1:3, -[ybr, 1j * bbn, 1j * bbn], 3, 3);
 M = sparse([fbn, tbn, fbn, tbn], [1,1,2,3], [1,-1,1,1], N, 3);
-c = inv(inv(deltay) + M.' * inv(Y) * M);
-deltaI = - M * c * M.' * inv(Y) * I;
+c = inv(inv(deltay) + M.' * inv(Ym) * M);
+deltaI = - M * c * M.' * inv(Ym) * I;
 Is = I + deltaI;
-Vs = Y \ Is;
-Vsorg = mpYm \ I;
+Vs = Ym \ Is;
+Vsorg = Y \ I;
 disp('Compensation current');
-fprintf('v error = %s\n', norm(full(Vsorg - Vs)));
+fprintf('V error = %s\n', norm(full(Vsorg - Vs)));
+% steps
+Eij = M.' * V;
+full(Eij)
+Zt = M.' * inv(Ym) * M;
+full(Zt)
+invc = inv(deltay) + Zt;
+full(invc)
+Iij = invc \ Eij;
+full(Iij)
+DeltaI = - M * Iij;
+fprintf('physics error = %s\n',norm(full(Ym\(I+DeltaI) - Vsorg)));
