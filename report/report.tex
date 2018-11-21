@@ -1,5 +1,5 @@
 \documentclass[a4paper,12pt]{article}
-\usepackage[noabs,notoc]{HaotianReport}
+\usepackage[noabs]{HaotianReport}
 \usepackage[numbered]{matlab-prettifier} % for matlab code
 
 \title{第一次作业}
@@ -16,7 +16,7 @@
     \paragraph{题目描述} 请阅读参考程序1，理解并解读每一模块的功能与实现方法。试用自己的方法计算节点不定导纳矩阵Y0，并以地为参考节点生成导纳矩阵Y。
     \subsubsection{程序解读}
     \begin{enumerate}
-      \item 导入MatPower的IEEE 9节点模型，并给出了模型信息。N为节点数量，b为支路数量。
+      \item 导入MatPower\cite{zimmerman2011matpower}的IEEE 9节点模型，并给出了模型信息。N为节点数量，b为支路数量。
       \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
 mpc = case9();
 N = size(mpc.bus,1);
@@ -85,7 +85,7 @@ disp(Ybus - Y);
 % 输出：(9,9)      0.0000e+00 - 3.5527e-15i
     \end{lstlisting}
 
-    makeYbus函数为了处理移相器支路，采用了不同的生成方式，MATPOWER的说明文档[TODO:cite]中对生成方式进行了说明。首先，将支路建立成一个二端口的形式，也就是变压器、移相器、输电线均被建立为一个通用支路模型，如\cref{fig:branch}所示。其中，$v_f,i_f$为首节点电压电流，$v_t,i_t$为尾节点电压电流，$N=\tau e^{j\theta_{shift}}$为变压器变比，包含了变压器档位和移相器相位，$y_s=\frac{1}{r_s+j x_s}$及$b_c$均为$\pi$形等值线路参数。由此我们可以得到该二端口网络的方程，如\cref{eq:branch}所示。
+    makeYbus函数为了处理移相器支路，采用了不同的生成方式，MATPOWER的说明文档\cite{manual}中对生成方式进行了说明。首先，将支路建立成一个二端口的形式，也就是变压器、移相器、输电线均被建立为一个通用支路模型，如\cref{fig:branch}所示。其中，$v_f,i_f$为首节点电压电流，$v_t,i_t$为尾节点电压电流，$N=\tau e^{j\theta_{shift}}$为变压器变比，包含了变压器档位和移相器相位，$y_s=\frac{1}{r_s+j x_s}$及$b_c$均为$\pi$形等值线路参数。由此我们可以得到该二端口网络的方程，如\cref{eq:branch}所示。
 
     \begin{figure}
       \includegraphics[width=0.95\linewidth]{branch}
@@ -411,9 +411,21 @@ fprintf('ldu-lr error = %s\n', norm(full(Y - Lm2*Dm2*Um2)));
 % 输出：ldu-lr error = 1.046696e-14
     \end{lstlisting}
     \subsubsection{方法比较}
-    TODO
+    使用MATLAB的tic、toc函数对两种算法的修正时间进行计量，得到如下结果。
+    \begin{lstlisting}
+time_r1 = 5.357700e-03
+time_lr = 2.139600e-03
+    \end{lstlisting}
+
+    结果表明，秩1因子修正法共计消耗5.35ms，局部再分解法共计消耗2.14ms。在本例下，局部再分解法更有优势。
+
+    然而，也并不是所有情况下局部再分解法都更有优势。秩1因子修正法需要对修正量的每个秩1元素进行修正，每次修正需要对该次编号的道路集上的元素进行运算。局部再分解法则只进行一次修正，对所有修正编号的总道路集上的元素进行运算，但同时也需要进行一次矩阵乘法$A_{22}'=L_{22}D_{22}U_{22}$，该连乘也需要消耗时间。所以，二者效率需要根据具体情况分析，不能一概而论。
     \subsubsection{应用场景与意义}
-    在修正范围小，受影响的节点少的情况下，TODO
+    在修正范围小，受影响的节点少的情况下，可以使用补偿法进行计算。如果影响范围太广，秩1因子修正则需要进行太多次，而局部再分解法的额外乘法运算$A_{22}'=L_{22}D_{22}U_{22}$也会使得其节省下的少量元素计算不值一提。因此，修正法应用于修正范围小的情况下。
+
+    另一方面，如果修正后仅进行一次计算，则也可以使用补偿法，而不修正因子表。因子表修正法，适用于需要多次应用网络变化后的因子表的情况，特别适用于网络变化是永久性的场合。
+
+    修正法可以大幅提高网络方程修正计算的速度，对提高网络分析的效率起到决定性作用，目前已在电网计算的诸多领域有了广泛的应用\cite{教材}。
 
     \subsection{题目3}
     \paragraph{题目描述} 探讨并用运算结果说明补偿法的物理意义（可以考虑使用“补偿电流”的方法）。
@@ -508,9 +520,9 @@ fprintf('V error = %s\n', norm(full(Vsorg - Vs)));
     $$||\widetilde {\dot V} - \dot V_2||_2=4.543401\times 10^{-15}$$
 
     以上步骤及结果表明，此处进行的基于物理意义的步骤是正确的。
-    \newpage
+
     \bibliography{report}
-    \bibliographystyle{unsrt}
+    \bibliographystyle{ieeetr}
     \appendix
     \section{程序清单}
       \lstinputlisting[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:hwtask,caption={全部作业任务}]{../hwtask.m}
