@@ -53,23 +53,21 @@ fbn = mpc_m.branch(end, F_BUS);
 tbn = mpc_m.branch(end, T_BUS);
 ybr = 1./(mpc_m.branch(end, BR_R) + 1j*mpc_m.branch(end, BR_X));
 bbn = mpc_m.branch(end, BR_B) / 2;
-Ml = sparse([fbn tbn], [1 1], [1 -1], N, 1);
-Ym = Y + Ml * ybr * Ml' + sparse([fbn tbn], [fbn tbn], [1j 1j] * bbn, N, N);
+Ml = sparse([fbn tbn fbn tbn], [1 1 2 3], [1 -1 1 1], N, 3);
+dy = sparse(1:3, 1:3, [ybr,1j*bbn,1j*bbn], 3, 3);
+Ym = Y + Ml * dy * Ml';
 disp('modify Y');
 fprintf('Ym error = %s\n', norm(full(Ym - mpYm)));
 %% Modify Z
 Z = inv(Y);
-zaa = mpc_m.branch(end, BR_R) + 1j*mpc_m.branch(end, BR_X) + Ml' * Z * Ml;
-Zm = Z - Z * Ml / zaa * Ml' * Z;
-zaa = 1 / (1j * bbn) + Zm(fbn, fbn);
-Zm = Zm - Zm(:, fbn) / zaa * Zm(fbn, :);
-zaa = 1 / (1j * bbn) + Zm(tbn, tbn);
-Zm = Zm - Zm(:, tbn) / zaa * Zm(tbn, :);
+zaa = inv(dy) + Ml' * Z * Ml;
+Zm = Z - Z * Ml * inv(zaa) * Ml' * Z;
 disp('modify Z');
 fprintf('Zm error = %s\n', norm(full(Zm - inv(mpYm))));
 %% Modify LDU - Rank1
 % symmetry matrix
 [L, D, U] = calcLDU(mpYm);
+Ml = sparse([fbn tbn], [1 1], [1 -1], N, 1);
 tic;
 [Lm1, Dm1, Um1] = modifyLDUr1(D, U, Ml, -ybr);
 [Lm1, Dm1, Um1] = modifyLDUr1(Dm1, Um1, sparse(fbn, 1, 1, N, 1), -1j * bbn);

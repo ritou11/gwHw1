@@ -1,6 +1,6 @@
 \documentclass[a4paper,12pt]{article}
 \usepackage[noabs]{HaotianReport}
-\usepackage[numbered]{matlab-prettifier} % for matlab code
+\usepackage{matlab-prettifier} % for matlab code
 
 \title{第一次作业}
 \author{刘昊天}
@@ -134,7 +134,20 @@ disp(Ybus - Y);
       \end{aligned}
     \end{equation}
 
-    TODO：编程技巧
+    makeYbus的程序编写符合MATLAB编程习惯，如果要找出编程技巧，可以有以下几点：
+    \begin{enumerate}
+      \item 读取了MATPOWER的标号函数idx\_bus、idx\_brch，将常数下标换成了F\_BUS、T\_BUS这样的变量，使得程序自明易读。
+      \item 此处将矩阵乘法先一步根据物理意义展开，减少了运算量。
+      \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily]
+%% at each branch's "from" bus, and Yt is the same for the "to" bus end
+i = [1:nl; 1:nl]';                              %% double set of row indices
+Yf = sparse(i, [f; t], [Yff; Yft], nl, nb);
+Yt = sparse(i, [f; t], [Ytf; Ytt], nl, nb);
+% Yf = spdiags(Yff, 0, nl, nl) * Cf + spdiags(Yft, 0, nl, nl) * Ct;
+% Yt = spdiags(Ytf, 0, nl, nl) * Cf + spdiags(Ytt, 0, nl, nl) * Ct;
+      \end{lstlisting}
+      \item 全部使用稀疏矩阵，在处理大规模问题时可以提现优越性。
+    \end{enumerate}
     \subsection{题目3}
     \paragraph{题目描述} 探讨Y矩阵的各类特性（包括但不限于：稀疏性、对角占优、非奇异性等），并用计算结果进行验证。
 
@@ -235,12 +248,32 @@ Zm = Zm - Zm(:,jnn)/zl*Zm(jnn,:);
       \end{lstlisting}
     \end{enumerate}
     \subsubsection{导纳矩阵修正}
-    该修正方法和参考程序类似。区别在于使用了一种编程技巧，即读取了MATPOWER的标号函数，将原来的常数下标换成了F\_BUS、T\_BUS这样的变量，使得程序易读。TODO
+    参考程序中，将一条支路的影响分三次进行修正。而实际上，如果考虑修正量是一个$3\times 3$的矩阵，同样可以用类似的方法修正。本程序将参考程序中的关联矢量Ml扩展为$N\times 3$的关联矩阵，一次直接修正Y矩阵。
+
     \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q2q1p1,caption={导纳矩阵修正程序}]
+%% Modify Y
+mpc_m = case9_modified();
+mpYm = makeYbus(mpc_m);
+
+fbn = mpc_m.branch(end, F_BUS);
+tbn = mpc_m.branch(end, T_BUS);
+ybr = 1./(mpc_m.branch(end, BR_R) + 1j*mpc_m.branch(end, BR_X));
+bbn = mpc_m.branch(end, BR_B) / 2;
+Ml = sparse([fbn tbn fbn tbn], [1 1 2 3], [1 -1 1 1], N, 3);
+dy = sparse(1:3, 1:3, [ybr,1j*bbn,1j*bbn], 3, 3);
+Ym = Y + Ml * dy * Ml';
+disp('modify Y');
+fprintf('Ym error = %s\n', norm(full(Ym - mpYm)));
     \end{lstlisting}
     \subsubsection{阻抗矩阵修正}
-    TODO。本报告所采用的的
+    同样，参考程序进行了三次修正，而本报告所采用修正量是$3\times 3$矩阵的方式，仅进行一次修正。
     \begin{lstlisting}[style=Matlab-editor,basicstyle=\mlttfamily,label=lst:q2q1p2,caption={阻抗矩阵修正程序}]
+%% Modify Z
+Z = inv(Y);
+zaa = inv(dy) + Ml' * Z * Ml;
+Zm = Z - Z * Ml * inv(zaa) * Ml' * Z;
+disp('modify Z');
+fprintf('Zm error = %s\n', norm(full(Zm - inv(mpYm))));
     \end{lstlisting}
     \subsection{题目2}
     \paragraph{题目描述} 讨论并验证在已添加支路的系统中去除该支路的LDU修正方法与结果。请思考：需要做几次修正？因子表的秩1因子修正与局部再分解的计算效率如何？修正法的应用场景与意义？
